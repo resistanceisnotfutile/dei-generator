@@ -1,5 +1,10 @@
 """Use a local AI agent to generate fake (but believable) reports for the DEInied site."""
 
+import sys
+import getopt
+from ctypes import ArgumentError
+
+import ollama
 from ollama import ChatResponse, chat, ResponseError
 from tools import get_school_information
 
@@ -53,7 +58,7 @@ def load_system_prompt(filepath="system_prompt.txt"):
 
 
 def generate_response(
-    model="gemma2:9b",
+    use_model,
     user_prompt="Tell me about my child's school.",
     system_prompt_file="system_prompt.txt",
 ):
@@ -68,11 +73,13 @@ def generate_response(
         {"role": "user", "content": user_prompt},
     ]
 
-    supports_tool = model.split(":")[0] in MODELS_SUPPORTING_TOOLS
+    supports_tool = use_model.split(":")[0] in MODELS_SUPPORTING_TOOLS
 
     try:
         tools = [get_school_information] if supports_tool else None
-        chat_response: ChatResponse = chat(model=model, messages=messages, tools=tools)
+        chat_response: ChatResponse = chat(
+            model=use_model, messages=messages, tools=tools
+        )
         if supports_tool:
             if chat_response["message"]["tool_calls"]:
                 for tool in chat_response["message"]["tool_calls"]:
@@ -90,7 +97,9 @@ def generate_response(
                             "name": tool.function.name,
                         }
                     )
-                    final_repsonse: ChatResponse = chat(model=model, messages=messages)
+                    final_repsonse: ChatResponse = chat(
+                        model=use_model, messages=messages
+                    )
                     return final_repsonse["message"]["content"]
 
         return chat_response["message"]["content"]
@@ -103,8 +112,38 @@ def generate_response(
 if __name__ == "__main__":
     USER_PROMPT = "Tell me about my child's school."
     SYSTEM_PROMPT_FILE = "system_prompt.txt"
+
+    argument_list = sys.argv[1:]
+    OPTIONS = "hm:"
+    long_options = ["Help", "Model="]
+
+    # Define a default model.
+    models = ollama.list()["models"]
+    if len(models) == 0:
+        raise ArgumentError("No models found.")
+    model = models[0]["model"]
+
+    try:
+        arguments, values = getopt.getopt(argument_list, OPTIONS, long_options)
+        for current_argument, current_value in arguments:
+            if current_argument in ("-h", "--help"):
+                print(
+                    f"""
+Generate fake submission data for the End DEI page.
+
+-h / --help:                  Display this message.
+-m [model] / --model=[model]: Use the specific model. Default: {model}
+"""
+                )
+                sys.exit(0)
+            elif current_argument in ("-m", "--Model"):
+                model = current_value
+    except getopt.GetoptError as err:
+        print(str(err))
+        sys.exit(2)
+
     response = generate_response(
-        model="llama3.2:3b",
+        use_model=model,
         user_prompt=USER_PROMPT,
         system_prompt_file=SYSTEM_PROMPT_FILE,
     )
