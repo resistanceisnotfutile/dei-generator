@@ -44,3 +44,7 @@ The following models have been tested with this app:
 | `gemma2`   | No           | Works well, but lack of tool support means the responses will probably be shorter and are very likely to be located entirely in the 90210 zip code.|
 | `qwen2.5`  | Yes          | Okay output, but it seems to ignore instructions not to end with some whiny opinionating. |
 | `llama3.2` | Yes          | Excellent output even from the `3b` model. |
+
+## Prompt Engineering
+
+If you don't want to set this up or it seems like too much effort, you can also use the [standalone prompt](standalone_system_prompt.txt) - simply copy the contents of that file into your favorite online interface and generate a response. You should get back only the `summary` information.
